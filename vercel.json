@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/sprint_capacity_planner.html" }
+  ]
+}

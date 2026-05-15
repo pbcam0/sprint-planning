@@ -584,7 +584,6 @@
 </div>
 
 <script>
-const STORAGE_KEY_PREFIX = 'sprint_session_';
 const SESSION_TTL = 2 * 60 * 60 * 1000; // 2 hours
 
 let sessionId = null;
@@ -621,15 +620,11 @@ function genId() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
 }
 
-function getSessionKey(id) {
-  return STORAGE_KEY_PREFIX + id;
-}
-
 async function loadSession(id) {
   try {
-    const res = await window.storage.get(getSessionKey(id), true);
-    if (!res) return null;
-    const data = JSON.parse(res.value);
+    const res = await fetch(`/api/session?id=${encodeURIComponent(id)}`);
+    if (!res.ok) return null;
+    const data = await res.json();
     if (Date.now() - data.createdAt > SESSION_TTL) return null;
     return data;
   } catch { return null; }
@@ -637,7 +632,11 @@ async function loadSession(id) {
 
 async function saveSession(data) {
   try {
-    await window.storage.set(getSessionKey(data.id), JSON.stringify(data), true);
+    await fetch('/api/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
   } catch(e) { console.error('save failed', e); }
 }
 
@@ -1083,7 +1082,7 @@ function generateMarkdown() {
 function resetSession() {
   if (!confirm('Clear this session? This cannot be undone.')) return;
   if (sessionId) {
-    try { window.storage.delete(getSessionKey(sessionId), true); } catch {}
+    fetch(`/api/session?id=${encodeURIComponent(sessionId)}`, { method: 'DELETE' }).catch(() => {});
     sessionStorage.removeItem('sprint_myname_' + sessionId);
   }
   const url = new URL(window.location.href);
