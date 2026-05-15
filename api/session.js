@@ -1,4 +1,5 @@
-const { kv } = require('@vercel/kv');
+const { Redis } = require('@upstash/redis');
+const kv = Redis.fromEnv();
 
 const KEY_PREFIX = 'sprint_session_';
 const SESSION_TTL_SECS = 2 * 60 * 60; // 2 hours
