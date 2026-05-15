@@ -1,0 +1,1097 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sprint Capacity Planner</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f11;
+    --surface: #1a1a1f;
+    --surface2: #232329;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0efe8;
+    --muted: #888786;
+    --accent: #7f77dd;
+    --accent-dim: rgba(127,119,221,0.15);
+    --green: #1d9e75;
+    --green-bg: rgba(29,158,117,0.15);
+    --amber: #ef9f27;
+    --amber-bg: rgba(239,159,39,0.15);
+    --red: #e24b4a;
+    --red-bg: rgba(226,75,74,0.15);
+    --weekend: rgba(255,255,255,0.03);
+    --font: 'DM Sans', sans-serif;
+    --mono: 'DM Mono', monospace;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .app { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+  .header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 2.5rem;
+  }
+  .header h1 {
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: -0.3px;
+    color: var(--text);
+  }
+  .header .tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    background: var(--accent-dim);
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+  }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* Setup screen */
+  .setup-card {
+    max-width: 480px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+  }
+  .setup-card h2 {
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 1.5rem;
+    color: var(--text);
+  }
+  .field { margin-bottom: 1.25rem; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-family: var(--mono);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .field input, .field select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    padding: 9px 12px;
+    font-family: var(--font);
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field input:focus, .field select:focus {
+    border-color: var(--accent);
+  }
+  .field select option { background: #232329; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 18px;
+    border-radius: var(--radius-sm);
+    border: none;
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.15s;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-ghost {
+    background: var(--surface2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { color: var(--text); border-color: var(--border2); }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+  /* Join screen */
+  .join-card {
+    max-width: 400px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+  }
+  .sprint-info {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    margin-bottom: 1.5rem;
+  }
+  .sprint-info .sprint-name {
+    font-weight: 500;
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
+  .sprint-info .sprint-meta {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  /* Share bar */
+  .share-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    margin-bottom: 2rem;
+  }
+  .share-bar .url {
+    flex: 1;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .share-bar .copied-msg {
+    font-size: 11px;
+    color: var(--green);
+    font-family: var(--mono);
+  }
+
+  /* Main board */
+  .board-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .sprint-title {
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: -0.4px;
+  }
+  .sprint-subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+    font-family: var(--mono);
+  }
+
+  .capacity-badge {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 20px;
+  }
+  .cap-item { text-align: center; }
+  .cap-value {
+    font-size: 22px;
+    font-weight: 500;
+    font-family: var(--mono);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .cap-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  .cap-sep {
+    width: 1px;
+    height: 36px;
+    background: var(--border);
+  }
+
+  /* Table */
+  .table-wrap {
+    overflow-x: auto;
+    margin-bottom: 1.5rem;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+  }
+  th {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 8px 10px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  th.name-col { text-align: left; min-width: 140px; }
+  th.weekend { background: var(--weekend); color: rgba(136,135,134,0.5); }
+
+  td {
+    padding: 4px 6px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  td.name-col {
+    text-align: left;
+    padding: 6px 10px;
+    font-size: 13px;
+    min-width: 140px;
+  }
+  td.weekend { background: var(--weekend); }
+
+  tr:last-child td { border-bottom: none; }
+  tr.summary-row td {
+    background: var(--surface);
+    border-top: 1px solid var(--border2);
+    border-bottom: none;
+    padding: 8px 6px;
+  }
+  tr.summary-row td.name-col {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--mono);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  /* Cell toggle */
+  .cell-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border2);
+    background: var(--surface2);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.12s;
+    user-select: none;
+  }
+  .cell-btn:hover { border-color: var(--border2); transform: scale(1.08); }
+  .cell-btn.full {
+    background: var(--green-bg);
+    border-color: var(--green);
+    color: var(--green);
+  }
+  .cell-btn.half {
+    background: var(--amber-bg);
+    border-color: var(--amber);
+    color: var(--amber);
+  }
+  .cell-btn.none {
+    background: var(--red-bg);
+    border-color: var(--red);
+    color: var(--red);
+  }
+  .cell-btn.weekend-cell {
+    opacity: 0.25;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  /* Capacity day bar */
+  .day-cap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  .day-cap-pct {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .day-cap-bar {
+    width: 28px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border2);
+    overflow: hidden;
+  }
+  .day-cap-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+
+  /* Add name row */
+  .add-row td { padding: 8px 6px; border-bottom: none; }
+  .name-input-wrap { display: flex; gap: 6px; align-items: center; }
+  .name-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    padding: 7px 10px;
+    font-family: var(--font);
+    font-size: 13px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .name-input:focus { border-color: var(--accent); }
+
+  /* Actions bar */
+  .actions-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* Export modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 1.5rem;
+  }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    max-width: 680px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .modal h3 {
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 1rem;
+  }
+  .export-pre {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 1rem;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--text);
+    white-space: pre;
+    overflow-x: auto;
+    margin-bottom: 1rem;
+  }
+  .modal-actions { display: flex; gap: 8px; }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+  }
+
+  /* Friday/weekend separator */
+  .fri-sep {
+    border-right: 2px solid rgba(255,255,255,0.18) !important;
+  }
+
+  /* Sprint summary column */
+  .sprint-col {
+    border-left: 2px solid var(--border2);
+    padding-left: 10px !important;
+  }
+
+  .pulse {
+    animation: pulse 1.5s ease infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .fade-in {
+    animation: fadeIn 0.25s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>Sprint Capacity</h1>
+    <span class="tag">PLANNER</span>
+  </div>
+
+  <!-- Setup screen -->
+  <div id="screen-setup" class="screen active">
+    <div class="setup-card fade-in">
+      <h2>Start a new sprint session</h2>
+      <div class="field">
+        <label>Sprint name</label>
+        <input type="text" id="setup-name" placeholder="e.g. Sprint 42" />
+      </div>
+      <div class="field">
+        <label>Start date</label>
+        <input type="date" id="setup-date" />
+      </div>
+      <div class="field">
+        <label>Sprint length (working days)</label>
+        <select id="setup-length">
+          <option value="5">5 days (1 week)</option>
+          <option value="10" selected>10 days (2 weeks)</option>
+          <option value="15">15 days (3 weeks)</option>
+          <option value="20">20 days (4 weeks)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Your name (optional — adds you as first participant)</label>
+        <input type="text" id="setup-host" placeholder="Leave blank to join later" />
+      </div>
+      <button class="btn btn-primary" onclick="createSession()">Create session →</button>
+    </div>
+  </div>
+
+  <!-- Join screen (shown when ?session= param exists but user hasn't added name) -->
+  <div id="screen-join" class="screen">
+    <div class="join-card fade-in">
+      <div class="sprint-info">
+        <div class="sprint-name" id="join-sprint-name"></div>
+        <div class="sprint-meta" id="join-sprint-meta"></div>
+      </div>
+      <div class="field">
+        <label>Your name</label>
+        <input type="text" id="join-name-input" placeholder="Enter your name to join" />
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary" onclick="joinSession()">Join sprint →</button>
+        <button class="btn btn-ghost" onclick="viewWithoutJoining()">Just view</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main board -->
+  <div id="screen-board" class="screen">
+    <div class="board-top">
+      <div>
+        <div class="sprint-title" id="board-title"></div>
+        <div class="sprint-subtitle" id="board-subtitle"></div>
+      </div>
+      <div class="capacity-badge">
+        <div class="cap-item">
+          <div class="cap-value" id="total-cap-pct" style="color: var(--green)">—</div>
+          <div class="cap-label">Sprint capacity</div>
+        </div>
+        <div class="cap-sep"></div>
+        <div class="cap-item">
+          <div class="cap-value" id="total-cap-days" style="color: var(--text)">—</div>
+          <div class="cap-label">Person-days</div>
+        </div>
+        <div class="cap-sep"></div>
+        <div class="cap-item">
+          <div class="cap-value pulse" id="participant-count" style="color: var(--accent)">0</div>
+          <div class="cap-label">Participants</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="share-bar" id="share-bar">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--muted);flex-shrink:0"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      <span class="url" id="share-url"></span>
+      <span class="copied-msg" id="copied-msg" style="display:none">copied!</span>
+      <button class="btn btn-ghost btn-sm" onclick="copyShareLink()">Copy link</button>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Available</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Half day</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Unavailable</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--border2)"></div>Not set</div>
+    </div>
+
+    <div class="table-wrap">
+      <table id="capacity-table">
+        <thead id="table-head"></thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+
+    <div class="actions-bar">
+      <button class="btn btn-ghost" onclick="showExport()">Export markdown</button>
+      <button class="btn btn-ghost btn-sm" onclick="resetSession()" style="color:var(--red);margin-left:auto">Clear session</button>
+    </div>
+  </div>
+</div>
+
+<!-- Export modal -->
+<div id="export-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)hideExport()">
+  <div class="modal fade-in">
+    <h3>Markdown export</h3>
+    <pre class="export-pre" id="export-content"></pre>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-sm" onclick="copyExport()">Copy to clipboard</button>
+      <button class="btn btn-ghost btn-sm" onclick="hideExport()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY_PREFIX = 'sprint_session_';
+const SESSION_TTL = 2 * 60 * 60 * 1000; // 2 hours
+
+let sessionId = null;
+let sessionData = null;
+let myName = null;
+let pollInterval = null;
+let currentDays = [];
+
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function formatDate(d) {
+  return `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+}
+
+function isWeekend(d) {
+  return d.getDay() === 0 || d.getDay() === 6;
+}
+
+function getWorkingDays(startDate, count) {
+  const days = [];
+  const d = new Date(startDate);
+  let found = 0;
+  let checked = 0;
+  while (found < count && checked < 200) {
+    if (!isWeekend(d)) { days.push(new Date(d)); found++; }
+    d.setDate(d.getDate() + 1);
+    checked++;
+  }
+  return days;
+}
+
+function genId() {
+  return Math.random().toString(36).slice(2, 8).toUpperCase();
+}
+
+function getSessionKey(id) {
+  return STORAGE_KEY_PREFIX + id;
+}
+
+async function loadSession(id) {
+  try {
+    const res = await window.storage.get(getSessionKey(id), true);
+    if (!res) return null;
+    const data = JSON.parse(res.value);
+    if (Date.now() - data.createdAt > SESSION_TTL) return null;
+    return data;
+  } catch { return null; }
+}
+
+async function saveSession(data) {
+  try {
+    await window.storage.set(getSessionKey(data.id), JSON.stringify(data), true);
+  } catch(e) { console.error('save failed', e); }
+}
+
+function getUrlParam(key) {
+  return new URLSearchParams(window.location.search).get(key);
+}
+
+function setUrlParam(key, val) {
+  const url = new URL(window.location.href);
+  url.searchParams.set(key, val);
+  window.history.replaceState({}, '', url);
+}
+
+async function init() {
+  const sid = getUrlParam('session');
+  const today = new Date();
+  const dd = today.toISOString().split('T')[0];
+  document.getElementById('setup-date').value = dd;
+
+  if (!sid) {
+    showScreen('setup');
+    return;
+  }
+
+  sessionId = sid;
+  sessionData = await loadSession(sid);
+
+  if (!sessionData) {
+    showScreen('setup');
+    return;
+  }
+
+  const storedName = sessionStorage.getItem('sprint_myname_' + sid);
+  if (storedName) {
+    myName = storedName;
+    showBoard();
+    return;
+  }
+
+  showJoinScreen();
+}
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+}
+
+function showJoinScreen() {
+  document.getElementById('join-sprint-name').textContent = sessionData.sprintName;
+  const days = getWorkingDays(new Date(sessionData.startDate), sessionData.sprintLength);
+  document.getElementById('join-sprint-meta').textContent =
+    `${formatDate(days[0])} → ${formatDate(days[days.length-1])} · ${sessionData.sprintLength} days`;
+  showScreen('join');
+}
+
+async function createSession() {
+  const name = document.getElementById('setup-name').value.trim();
+  const dateVal = document.getElementById('setup-date').value;
+  const length = parseInt(document.getElementById('setup-length').value);
+  const hostName = document.getElementById('setup-host').value.trim();
+
+  if (!name || !dateVal) {
+    alert('Please fill in sprint name and start date.');
+    return;
+  }
+
+  const id = genId();
+  sessionId = id;
+
+  sessionData = {
+    id,
+    sprintName: name,
+    startDate: dateVal,
+    sprintLength: length,
+    createdAt: Date.now(),
+    participants: {},
+    availability: {}
+  };
+
+  if (hostName) {
+    sessionData.participants[hostName] = { joinedAt: Date.now() };
+    sessionData.availability[hostName] = {};
+    myName = hostName;
+    sessionStorage.setItem('sprint_myname_' + id, hostName);
+  }
+
+  await saveSession(sessionData);
+  setUrlParam('session', id);
+  showBoard();
+}
+
+async function joinSession() {
+  const name = document.getElementById('join-name-input').value.trim();
+  if (!name) { alert('Please enter your name.'); return; }
+
+  if (!sessionData.participants[name]) {
+    sessionData.participants[name] = { joinedAt: Date.now() };
+    sessionData.availability[name] = {};
+    await saveSession(sessionData);
+  }
+
+  myName = name;
+  sessionStorage.setItem('sprint_myname_' + sessionId, name);
+  showBoard();
+}
+
+function viewWithoutJoining() {
+  myName = null;
+  showBoard();
+}
+
+function showBoard() {
+  showScreen('board');
+  const url = window.location.origin + window.location.pathname + '?session=' + sessionId;
+  document.getElementById('share-url').textContent = url;
+  renderBoard();
+  if (pollInterval) clearInterval(pollInterval);
+  pollInterval = setInterval(pollUpdates, 3000);
+}
+
+async function pollUpdates() {
+  const fresh = await loadSession(sessionId);
+  if (!fresh) return;
+  sessionData = fresh;
+  renderBoard();
+}
+
+function renderBoard() {
+  if (!sessionData) return;
+
+  document.getElementById('board-title').textContent = sessionData.sprintName;
+  const days = getWorkingDays(new Date(sessionData.startDate), sessionData.sprintLength);
+  document.getElementById('board-subtitle').textContent =
+    `${formatDate(days[0])} – ${formatDate(days[days.length-1])} · ${sessionData.sprintLength} working days`;
+
+  document.getElementById('participant-count').textContent =
+    Object.keys(sessionData.participants).length;
+
+  renderTable(days);
+  updateCapacity(days);
+}
+
+function cellState(name, dateKey) {
+  return (sessionData.availability[name] || {})[dateKey] || 'unset';
+}
+
+const STATE_CYCLE = ['unset', 'full', 'half', 'none'];
+const STATE_ICON = { unset: '', full: '✓', half: '½', none: '✕' };
+const STATE_CLASS = { unset: '', full: 'full', half: 'half', none: 'none' };
+const STATE_VAL = { unset: 0, full: 1, half: 0.5, none: 0 };
+
+function nextState(s) {
+  const idx = STATE_CYCLE.indexOf(s);
+  return STATE_CYCLE[(idx + 1) % STATE_CYCLE.length];
+}
+
+function getSprintState(name, days) {
+  const avail = sessionData.availability[name] || {};
+  const states = days.map(d => avail[d.toISOString().split('T')[0]] || 'unset');
+  if (states.every(s => s === 'full')) return 'full';
+  if (states.every(s => s === 'none')) return 'none';
+  return 'unset';
+}
+
+async function toggleSprintRow(name) {
+  if (name !== myName) return;
+  const fresh = await loadSession(sessionId);
+  if (fresh) sessionData = fresh;
+  if (!sessionData.availability[name]) sessionData.availability[name] = {};
+
+  const cur = getSprintState(name, currentDays);
+  const SPRINT_CYCLE = ['unset', 'full', 'none'];
+  const next = SPRINT_CYCLE[(SPRINT_CYCLE.indexOf(cur) + 1) % SPRINT_CYCLE.length];
+
+  currentDays.forEach(d => {
+    const dateKey = d.toISOString().split('T')[0];
+    if (next === 'unset') {
+      delete sessionData.availability[name][dateKey];
+    } else {
+      sessionData.availability[name][dateKey] = next;
+    }
+  });
+
+  await saveSession(sessionData);
+  renderTable(currentDays);
+  updateCapacity(currentDays);
+}
+
+function renderTable(days) {
+  currentDays = days;
+  const thead = document.getElementById('table-head');
+  const tbody = document.getElementById('table-body');
+
+  // Build header
+  let headerHtml = '<tr><th class="name-col">Name</th>';
+  days.forEach((d, idx) => {
+    const isWe = isWeekend(d);
+    const isFriSep = d.getDay() === 5 && idx < days.length - 1;
+    headerHtml += `<th class="${isWe ? 'weekend' : ''}${isFriSep ? ' fri-sep' : ''}" style="min-width:48px">
+      <div style="line-height:1.3">${DAYS[d.getDay()]}</div>
+      <div style="font-size:9px;margin-top:2px">${d.getDate()} ${MONTHS[d.getMonth()]}</div>
+    </th>`;
+  });
+  headerHtml += '<th class="sprint-col" style="min-width:52px"><div style="line-height:1.3">Sprint</div></th>';
+  headerHtml += '</tr>';
+  thead.innerHTML = headerHtml;
+
+  // Build body rows
+  const participants = Object.keys(sessionData.participants);
+  let bodyHtml = '';
+
+  participants.forEach(name => {
+    const isMe = (name === myName);
+    bodyHtml += `<tr>`;
+    bodyHtml += `<td class="name-col">
+      <div style="display:flex;align-items:center;gap:6px">
+        <div style="width:22px;height:22px;border-radius:50%;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;color:var(--accent);flex-shrink:0">${name[0].toUpperCase()}</div>
+        <span>${name}</span>
+        ${isMe ? '<span style="font-size:10px;color:var(--muted);font-family:var(--mono)">(you)</span>' : ''}
+      </div>
+    </td>`;
+
+    days.forEach((d, idx) => {
+      const dateKey = d.toISOString().split('T')[0];
+      const isFriSep = d.getDay() === 5 && idx < days.length - 1;
+      const state = cellState(name, dateKey);
+      const icon = STATE_ICON[state];
+      const cls = STATE_CLASS[state];
+      if (isMe) {
+        bodyHtml += `<td class="${isFriSep ? 'fri-sep' : ''}"><button class="cell-btn ${cls}" onclick="toggleCell('${name}','${dateKey}')" title="${state}">${icon}</button></td>`;
+      } else {
+        bodyHtml += `<td class="${isFriSep ? 'fri-sep' : ''}"><div class="cell-btn ${cls}" style="cursor:default">${icon}</div></td>`;
+      }
+    });
+
+    // Sprint-wide toggle
+    const sprintState = getSprintState(name, days);
+    const sprintIcon = STATE_ICON[sprintState];
+    const sprintCls = STATE_CLASS[sprintState];
+    if (isMe) {
+      bodyHtml += `<td class="sprint-col"><button class="cell-btn ${sprintCls}" onclick="toggleSprintRow('${name}')" title="Toggle entire sprint">${sprintIcon}</button></td>`;
+    } else {
+      bodyHtml += `<td class="sprint-col"><div class="cell-btn ${sprintCls}" style="cursor:default">${sprintIcon}</div></td>`;
+    }
+
+    bodyHtml += '</tr>';
+  });
+
+  // Summary row
+  bodyHtml += '<tr class="summary-row"><td class="name-col">daily capacity</td>';
+  days.forEach((d, idx) => {
+    const dateKey = d.toISOString().split('T')[0];
+    const isFriSep = d.getDay() === 5 && idx < days.length - 1;
+    const pct = getDayCapacity(participants, dateKey);
+    const color = pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--amber)' : 'var(--red)';
+    bodyHtml += `<td class="${isFriSep ? 'fri-sep' : ''}">
+      <div class="day-cap">
+        <div class="day-cap-pct" style="color:${color}">${participants.length ? pct + '%' : '—'}</div>
+        <div class="day-cap-bar"><div class="day-cap-fill" style="width:${pct}%;background:${color}"></div></div>
+      </div>
+    </td>`;
+  });
+  bodyHtml += '<td class="sprint-col"></td>';
+  bodyHtml += '</tr>';
+
+  // Add row
+  if (myName || !Object.keys(sessionData.participants).includes('__viewer')) {
+    bodyHtml += `<tr class="add-row"><td colspan="${days.length + 2}">
+      <div class="name-input-wrap">
+        <input class="name-input" id="new-name-input" placeholder="Add participant — type name and press Enter" onkeydown="if(event.key==='Enter')addParticipant()" />
+        <button class="btn btn-ghost btn-sm" onclick="addParticipant()">Add</button>
+      </div>
+    </td></tr>`;
+  }
+
+  tbody.innerHTML = bodyHtml;
+}
+
+function getDayCapacity(participants, dateKey) {
+  if (!participants.length) return 0;
+  const filled = participants.filter(n => (sessionData.availability[n]||{})[dateKey]);
+  if (!filled.length) return 0;
+  const sum = filled.reduce((a, n) => a + STATE_VAL[cellState(n, dateKey)], 0);
+  const max = participants.length;
+  return Math.round((sum / max) * 100);
+}
+
+function updateCapacity(days) {
+  const participants = Object.keys(sessionData.participants);
+  if (!participants.length) {
+    document.getElementById('total-cap-pct').textContent = '—';
+    document.getElementById('total-cap-days').textContent = '—';
+    return;
+  }
+
+  let totalActual = 0;
+  let totalMax = 0;
+  days.forEach(d => {
+    const dateKey = d.toISOString().split('T')[0];
+    participants.forEach(n => {
+      const s = cellState(n, dateKey);
+      totalActual += STATE_VAL[s];
+      totalMax += 1;
+    });
+  });
+
+  const pct = totalMax ? Math.round((totalActual / totalMax) * 100) : 0;
+  const personDays = Math.round(totalActual * 10) / 10;
+
+  document.getElementById('total-cap-pct').textContent = pct + '%';
+  document.getElementById('total-cap-days').textContent = personDays;
+
+  const el = document.getElementById('total-cap-pct');
+  el.style.color = pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--amber)' : 'var(--red)';
+}
+
+async function toggleCell(name, dateKey) {
+  if (name !== myName) return;
+  const fresh = await loadSession(sessionId);
+  if (fresh) sessionData = fresh;
+
+  if (!sessionData.availability[name]) sessionData.availability[name] = {};
+  const cur = sessionData.availability[name][dateKey] || 'unset';
+  const next = nextState(cur);
+  if (next === 'unset') {
+    delete sessionData.availability[name][dateKey];
+  } else {
+    sessionData.availability[name][dateKey] = next;
+  }
+  await saveSession(sessionData);
+  const days = getWorkingDays(new Date(sessionData.startDate), sessionData.sprintLength);
+  renderTable(days);
+  updateCapacity(days);
+}
+
+async function addParticipant() {
+  const input = document.getElementById('new-name-input');
+  if (!input) return;
+  const name = input.value.trim();
+  if (!name) return;
+
+  const fresh = await loadSession(sessionId);
+  if (fresh) sessionData = fresh;
+
+  if (!sessionData.participants[name]) {
+    sessionData.participants[name] = { joinedAt: Date.now() };
+    sessionData.availability[name] = {};
+    await saveSession(sessionData);
+
+    if (!myName) {
+      myName = name;
+      sessionStorage.setItem('sprint_myname_' + sessionId, name);
+    }
+    renderBoard();
+  } else {
+    if (!myName) {
+      myName = name;
+      sessionStorage.setItem('sprint_myname_' + sessionId, name);
+      renderBoard();
+    }
+  }
+  input.value = '';
+}
+
+function copyShareLink() {
+  const url = document.getElementById('share-url').textContent;
+  navigator.clipboard.writeText(url).then(() => {
+    const msg = document.getElementById('copied-msg');
+    msg.style.display = 'inline';
+    setTimeout(() => { msg.style.display = 'none'; }, 2000);
+  });
+}
+
+function showExport() {
+  const md = generateMarkdown();
+  document.getElementById('export-content').textContent = md;
+  document.getElementById('export-modal').style.display = 'flex';
+}
+
+function hideExport() {
+  document.getElementById('export-modal').style.display = 'none';
+}
+
+function copyExport() {
+  const text = document.getElementById('export-content').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.modal-actions .btn-primary');
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  });
+}
+
+function generateMarkdown() {
+  if (!sessionData) return '';
+  const days = getWorkingDays(new Date(sessionData.startDate), sessionData.sprintLength);
+  const participants = Object.keys(sessionData.participants);
+
+  const STATE_MD = { unset: '·', full: '✓', half: '½', none: '✕' };
+
+  let md = `## ${sessionData.sprintName}\n\n`;
+  md += `**${formatDate(days[0])} → ${formatDate(days[days.length-1])}** · ${sessionData.sprintLength} working days · ${participants.length} participants\n\n`;
+
+  // Header row
+  const headers = ['Name', ...days.map(d => `${DAYS[d.getDay()]} ${d.getDate()}`)];
+  md += '| ' + headers.join(' | ') + ' |\n';
+  md += '|' + headers.map(() => '---').join('|') + '|\n';
+
+  // Participant rows
+  participants.forEach(name => {
+    const cells = days.map(d => {
+      const s = cellState(name, d.toISOString().split('T')[0]);
+      return STATE_MD[s];
+    });
+    md += `| ${name} | ${cells.join(' | ')} |\n`;
+  });
+
+  // Summary row
+  const dayCaps = days.map(d => {
+    const pct = getDayCapacity(participants, d.toISOString().split('T')[0]);
+    return participants.length ? pct + '%' : '—';
+  });
+  md += `| **Daily cap** | ${dayCaps.join(' | ')} |\n\n`;
+
+  // Overall
+  let totalActual = 0, totalMax = 0;
+  days.forEach(d => {
+    participants.forEach(n => {
+      totalActual += STATE_VAL[cellState(n, d.toISOString().split('T')[0])];
+      totalMax++;
+    });
+  });
+  const overallPct = totalMax ? Math.round((totalActual / totalMax) * 100) : 0;
+  const personDays = Math.round(totalActual * 10) / 10;
+
+  md += `**Sprint capacity: ${overallPct}%** (${personDays} person-days available out of ${totalMax} maximum)\n\n`;
+  md += `> ✓ Available  ½ Half day  ✕ Unavailable  · Not set\n`;
+  md += `\n_Exported ${new Date().toLocaleString()}_`;
+
+  return md;
+}
+
+function resetSession() {
+  if (!confirm('Clear this session? This cannot be undone.')) return;
+  if (sessionId) {
+    try { window.storage.delete(getSessionKey(sessionId), true); } catch {}
+    sessionStorage.removeItem('sprint_myname_' + sessionId);
+  }
+  const url = new URL(window.location.href);
+  url.searchParams.delete('session');
+  window.location.href = url.toString();
+}
+
+init();
+</script>
+</body>
+</html>
