@@ -803,10 +803,12 @@ async function pollUpdates() {
   sessionData = fresh;
   const inputBefore = document.getElementById('new-name-input');
   const savedVal = inputBefore ? inputBefore.value : '';
+  const hadFocus = inputBefore && document.activeElement === inputBefore;
   renderBoard();
-  if (savedVal) {
-    const inputAfter = document.getElementById('new-name-input');
-    if (inputAfter) inputAfter.value = savedVal;
+  const inputAfter = document.getElementById('new-name-input');
+  if (inputAfter) {
+    if (savedVal) inputAfter.value = savedVal;
+    if (hadFocus) inputAfter.focus();
   }
 }
 
