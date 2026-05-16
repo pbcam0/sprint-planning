@@ -794,12 +794,29 @@ function showBoard() {
   document.getElementById('share-url').textContent = url;
   renderBoard();
   if (pollInterval) clearInterval(pollInterval);
-  pollInterval = setInterval(pollUpdates, 3000);
+  pollInterval = setInterval(pollUpdates, 15000);
+  document.addEventListener('visibilitychange', onVisibilityChange);
+}
+
+function onVisibilityChange() {
+  if (document.hidden) {
+    clearInterval(pollInterval);
+    pollInterval = null;
+  } else {
+    pollUpdates();
+    pollInterval = setInterval(pollUpdates, 15000);
+  }
 }
 
 async function pollUpdates() {
   const fresh = await loadSession(sessionId);
-  if (!fresh) return;
+  if (!fresh) {
+    clearInterval(pollInterval);
+    pollInterval = null;
+    document.removeEventListener('visibilitychange', onVisibilityChange);
+    showToast('Session expired — start a new one to continue.', true);
+    return;
+  }
   sessionData = fresh;
   const inputBefore = document.getElementById('new-name-input');
   const savedVal = inputBefore ? inputBefore.value : '';
