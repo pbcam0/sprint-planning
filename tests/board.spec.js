@@ -116,8 +116,12 @@ test('session expiry shows toast and stops polling', async ({ page }) => {
   await page.evaluate(() => window.pollUpdates());
 
   await expect(page.locator('#toast')).toContainText('Session expired');
-  const pollStopped = await page.evaluate(() => window.pollInterval === null);
-  expect(pollStopped).toBe(true);
+  // verify the interval was cleared: no further GETs should fire (poll is 15s; 500ms is safe)
+  const nextRequest = await page.waitForRequest(
+    req => req.url().includes('/api/session') && req.method() === 'GET',
+    { timeout: 500 }
+  ).catch(() => null);
+  expect(nextRequest).toBeNull();
 });
 
 test('polling pauses when tab is hidden and resumes when visible', async ({ page }) => {
